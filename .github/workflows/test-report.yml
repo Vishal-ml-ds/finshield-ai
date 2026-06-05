@@ -260,7 +260,7 @@ jobs:
 
       # Parse JUnit XML results and write GitHub Step Summary
       - name: Generate consolidated test report
-        uses: actions/github-script@v7
+        uses: actions/github-script@v9
         with:
           script: |
             const fs = require('fs');
@@ -362,7 +362,7 @@ jobs:
       # Post report as a PR comment when triggered from a PR
       - name: Post test results as PR comment
         if: github.event_name == 'pull_request'
-        uses: actions/github-script@v7
+        uses: actions/github-script@v9
         with:
           script: |
             const fs = require('fs');

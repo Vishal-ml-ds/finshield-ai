@@ -81,7 +81,7 @@ jobs:
             -no-color 2>&1 | tee plan.txt
 
       - name: Post plan to PR
-        uses: actions/github-script@v7
+        uses: actions/github-script@v9
         if: github.event_name == 'pull_request'
         with:
           script: |
@@ -285,7 +285,7 @@ jobs:
           fi
 
       - name: Create GitHub deployment failure annotation
-        uses: actions/github-script@v7
+        uses: actions/github-script@v9
         with:
           script: |
             core.error(`Deployment FAILED and was rolled back.
@@ -302,7 +302,7 @@ jobs:
     if: always() && (github.ref == 'refs/heads/main' || github.event_name == 'workflow_dispatch')
     steps:
       - name: Post deployment summary
-        uses: actions/github-script@v7
+        uses: actions/github-script@v9
         env:
           DEPLOY_STATUS: ${{ needs.deploy.outputs.deploy_status }}
           HEALTH_OK:     ${{ needs.health-check.outputs.health_ok }}
