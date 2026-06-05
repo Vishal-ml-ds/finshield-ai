@@ -123,7 +123,7 @@ jobs:
           retention-days: 14
 
       - name: Publish test report (PR)
-        uses: mikepenz/action-junit-report@v4
+        uses: mikepenz/action-junit-report@v6
         if: always() && github.event_name == 'pull_request'
         with:
           report_paths: backend/test-results.xml
@@ -188,7 +188,7 @@ jobs:
           retention-days: 14
 
       - name: Publish test report (PR)
-        uses: mikepenz/action-junit-report@v4
+        uses: mikepenz/action-junit-report@v6
         if: always() && github.event_name == 'pull_request'
         with:
           report_paths: frontend/test-results.xml
