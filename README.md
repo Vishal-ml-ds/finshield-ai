@@ -1,5 +1,13 @@
 # FinShield AI — Fraud Detection Platform
 
+[![CI](https://github.com/Vishal-ml-ds/finshield-ai/actions/workflows/ci.yml/badge.svg)](https://github.com/Vishal-ml-ds/finshield-ai/actions/workflows/ci.yml)
+[![Security Scan](https://github.com/Vishal-ml-ds/finshield-ai/actions/workflows/security-scan.yml/badge.svg)](https://github.com/Vishal-ml-ds/finshield-ai/actions/workflows/security-scan.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![Python 3.12](https://img.shields.io/badge/python-3.12-blue.svg)](https://www.python.org/downloads/)
+[![FastAPI](https://img.shields.io/badge/FastAPI-009688?logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com/)
+[![Next.js](https://img.shields.io/badge/Next.js-000000?logo=next.js&logoColor=white)](https://nextjs.org/)
+[![Contributions welcome](https://img.shields.io/badge/contributions-welcome-brightgreen.svg)](CONTRIBUTING.md)
+
 > ML-powered, real-time fraud detection for banks, fintechs, and insurance providers.
 >
 > Built by **Vishal Prasad** · [AIwithVishal](https://github.com/Vishal-ml-ds) — production-grade, multi-tenant fraud intelligence. Full architecture in [`docs/SYSTEM_DESIGN.md`](docs/SYSTEM_DESIGN.md).
