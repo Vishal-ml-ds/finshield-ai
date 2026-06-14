@@ -45,8 +45,8 @@ FinShield AI connects to a financial institution's customer and transaction data
 ---
 
 ## Architecture
-Before running the code you have to add details of supabase (databasse and auth) in 3 places
-1. frontend 
+
+> **Optional — Supabase:** The project runs on SQLite out of the box. To use Supabase (database + auth) instead, add your Supabase credentials in both `backend/.env` (`SUPABASE_URL`, `SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_KEY`) and `frontend/.env.local` (`NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`) before running.
 
 ```
 frontend/           Next.js 16 (App Router, TypeScript, Tailwind CSS)
@@ -174,7 +174,7 @@ Services started:
 | `finshield-redis` | localhost:6379 | Redis 7 |
 | `finshield-mailhog` | http://localhost:8025 | Email preview UI |
 
-> **Note:** Docker Compose uses port **8000** for the backend. Local (no-Docker) dev uses **8001** to avoid conflicts.
+> **Note:** Docker Compose uses port **8000** for the backend. Local (no-Docker) dev uses **8003** to avoid conflicts.
 
 To stop all containers:
 ```bash
@@ -351,8 +351,8 @@ PYTHONPATH=. python -m uvicorn app.main:app --host 0.0.0.0 --port 8003 --reload
 
 ### Port already in use
 ```bash
-# Find what's using port 8001
-netstat -ano | findstr :8001
+# Find what's using port 8003
+netstat -ano | findstr :8003
 
 # Kill by PID (Windows)
 taskkill /PID <pid> /F
