@@ -427,8 +427,10 @@ async def score_transaction(
     recent_txns: list[Transaction] = []
     if customer_id:
         try:
-            # Use naive UTC datetime for DB comparison (SQLite stores timestamps without TZ)
-            since = datetime.utcnow() - timedelta(days=30)
+            # Timezone-aware UTC: transaction_timestamp is DateTime(timezone=True),
+            # so a naive boundary raises TypeError on Postgres. The SQLite dialect
+            # strips tzinfo on storage, so this works there too.
+            since = datetime.now(timezone.utc) - timedelta(days=30)
             result = await db.execute(
                 select(Transaction)
                 .where(

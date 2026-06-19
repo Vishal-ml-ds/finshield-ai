@@ -30,20 +30,38 @@ get_settings.cache_clear()
 
 
 @pytest.fixture
+def anyio_backend():
+    """Pin anyio-based async tests to asyncio.
+
+    The app only ever runs under asyncio (uvicorn), and SQLAlchemy's async
+    engine + aiosqlite is not driven correctly under trio, so running the
+    trio backend produces spurious failures.
+    """
+    return "asyncio"
+
+
+@pytest.fixture
 async def client():
     """
     HTTP test client backed by an in-process SQLite database.
 
-    The FastAPI lifespan runs on context-manager entry, which calls
-    create_all_tables() (because APP_ENV=development).  All ORM models
-    are registered with Base when create_app() imports the routers.
-    No external services are needed.
+    httpx's ASGITransport does NOT run FastAPI lifespan events, so the
+    schema is created explicitly here (the lifespan's create_all_tables()
+    never fires under the test transport).  Importing create_app first
+    registers every ORM model with Base.  Tables are dropped afterwards so
+    each test starts from a clean database.
     """
     from app.main import create_app
+    from app.db.session import create_all_tables, engine, Base
 
     application = create_app()
-    async with AsyncClient(
-        transport=ASGITransport(app=application),
-        base_url="http://testserver",
-    ) as ac:
-        yield ac
+    await create_all_tables()
+    try:
+        async with AsyncClient(
+            transport=ASGITransport(app=application),
+            base_url="http://testserver",
+        ) as ac:
+            yield ac
+    finally:
+        async with engine.begin() as conn:
+            await conn.run_sync(Base.metadata.drop_all)

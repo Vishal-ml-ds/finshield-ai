@@ -1,5 +1,6 @@
 """Transaction endpoints — ingest, score, list, detail, OTP pre-block, CSV upload."""
 
+import asyncio
 import csv
 import io
 import random
@@ -215,18 +216,22 @@ async def request_otp(
         if cust:
             customer_phone = cust.phone_number
 
-    # Try to send OTP via Twilio
+    # Try to send OTP via Twilio. The Twilio SDK is synchronous and blocks on
+    # network I/O, so run it in a worker thread to avoid stalling the event loop.
     sms_sent = False
     if settings.TWILIO_ACCOUNT_SID and settings.TWILIO_AUTH_TOKEN and customer_phone:
         try:
             from twilio.rest import Client
 
-            client = Client(settings.TWILIO_ACCOUNT_SID, settings.TWILIO_AUTH_TOKEN)
-            client.messages.create(
-                body=f"FinShield OTP: {otp} — Use this to verify your ₹{float(txn.amount):,.0f} transaction. Valid 10 min.",
-                from_=settings.TWILIO_FROM_NUMBER,
-                to=customer_phone,
-            )
+            def _send_sms() -> None:
+                client = Client(settings.TWILIO_ACCOUNT_SID, settings.TWILIO_AUTH_TOKEN)
+                client.messages.create(
+                    body=f"FinShield OTP: {otp} — Use this to verify your ₹{float(txn.amount):,.0f} transaction. Valid 10 min.",
+                    from_=settings.TWILIO_FROM_NUMBER,
+                    to=customer_phone,
+                )
+
+            await asyncio.to_thread(_send_sms)
             sms_sent = True
         except Exception as exc:
             logger.warning("Twilio SMS failed: %s", exc)
