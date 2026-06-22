@@ -9,7 +9,7 @@ import logging
 from datetime import datetime, timezone
 from fastapi import APIRouter, Depends, Query, BackgroundTasks, UploadFile, File, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, func
+from sqlalchemy import select, func, or_
 
 from app.db.session import get_db
 from app.models.transaction import Transaction
@@ -101,6 +101,9 @@ async def list_transactions(
     fraud_category: str | None = Query(None),
     is_flagged: bool | None = Query(None),
     is_test: bool | None = Query(None),
+    search: str | None = Query(
+        None, description="Case-insensitive substring match on merchant name or transaction ID."
+    ),
 ):
     """List transactions with optional filters."""
     query = select(Transaction).where(Transaction.tenant_id == current_user.tenant_id)
@@ -111,6 +114,11 @@ async def list_transactions(
         query = query.where(Transaction.is_flagged == is_flagged)
     if is_test is not None:
         query = query.where(Transaction.is_test == is_test)
+    if search and search.strip():
+        like = f"%{search.strip()}%"
+        query = query.where(
+            or_(Transaction.merchant_name.ilike(like), Transaction.id.ilike(like))
+        )
 
     count_result = await db.execute(select(func.count()).select_from(query.subquery()))
     total = count_result.scalar_one()

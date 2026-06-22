@@ -54,12 +54,24 @@ export default function TransactionsPage() {
   const [perPage] = useState(20);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
   const [filterCategory, setFilterCategory] = useState<string>("all");
   const [showTestOnly, setShowTestOnly] = useState<boolean | null>(null);
 
   useEffect(() => {
     if (!isAuthenticated) { router.replace("/login"); }
   }, [isAuthenticated, router]);
+
+  // Debounce the search box, then push it to the server and jump back to page 1.
+  // (Searching server-side is required — client-side filtering only saw the
+  // current page, so matches on other pages were invisible.)
+  useEffect(() => {
+    const t = setTimeout(() => {
+      setDebouncedSearch(search.trim());
+      setPage(1);
+    }, 300);
+    return () => clearTimeout(t);
+  }, [search]);
 
   const fetchTransactions = useCallback(async () => {
     if (!token) return;
@@ -71,16 +83,18 @@ export default function TransactionsPage() {
       };
       if (filterCategory !== "all") params.fraud_category = filterCategory;
       if (showTestOnly !== null) params.is_test = String(showTestOnly);
+      if (debouncedSearch) params.search = debouncedSearch;
 
       const data = await apiClient.getTransactions(token, params);
       setTransactions(data.items as Transaction[]);
       setTotal(data.total);
     } catch {
       setTransactions([]);
+      setTotal(0);
     } finally {
       setLoading(false);
     }
-  }, [token, page, perPage, filterCategory, showTestOnly]);
+  }, [token, page, perPage, filterCategory, showTestOnly, debouncedSearch]);
 
   useEffect(() => { fetchTransactions(); }, [fetchTransactions]);
 
@@ -94,15 +108,6 @@ export default function TransactionsPage() {
     user.plan === "advanced" ? "#8B5CF6" : user.plan === "pro" ? "#3B82F6" : "#00FF87";
 
   const totalPages = Math.ceil(total / perPage);
-
-  // Client-side filter by search term (merchant name or ID)
-  const displayed = search.trim()
-    ? transactions.filter(
-        (t) =>
-          t.merchant_name?.toLowerCase().includes(search.toLowerCase()) ||
-          t.id.toLowerCase().includes(search.toLowerCase())
-      )
-    : transactions;
 
   return (
     <div className="min-h-screen bg-[#0A0A0F] text-white">
@@ -229,18 +234,24 @@ export default function TransactionsPage() {
                     <Loader2 size={24} className="animate-spin mx-auto" />
                   </td>
                 </tr>
-              ) : displayed.length === 0 ? (
+              ) : transactions.length === 0 ? (
                 <tr>
                   <td colSpan={7} className="text-center py-16 text-gray-600 text-sm">
-                    No transactions found. Submit one via{" "}
-                    <Link href="/dashboard/test-me" className="text-[#00FF87] hover:underline">
-                      Test Me
-                    </Link>
-                    .
+                    {debouncedSearch ? (
+                      <>No transactions match &ldquo;{debouncedSearch}&rdquo;.</>
+                    ) : (
+                      <>
+                        No transactions found. Submit one via{" "}
+                        <Link href="/dashboard/test-me" className="text-[#00FF87] hover:underline">
+                          Test Me
+                        </Link>
+                        .
+                      </>
+                    )}
                   </td>
                 </tr>
               ) : (
-                displayed.map((txn) => {
+                transactions.map((txn) => {
                   const cat = txn.fraud_category || "unscored";
                   const col = CATEGORY_COLOR[cat] || "#6B7280";
                   const bg  = CATEGORY_BG[cat]   || "#6B728018";
