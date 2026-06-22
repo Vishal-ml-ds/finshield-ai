@@ -1,5 +1,6 @@
 """Transaction endpoints — ingest, score, list, detail, OTP pre-block, CSV upload."""
 
+import asyncio
 import csv
 import io
 import random
@@ -8,7 +9,7 @@ import logging
 from datetime import datetime, timezone
 from fastapi import APIRouter, Depends, Query, BackgroundTasks, UploadFile, File, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, func
+from sqlalchemy import select, func, or_
 
 from app.db.session import get_db
 from app.models.transaction import Transaction
@@ -100,6 +101,9 @@ async def list_transactions(
     fraud_category: str | None = Query(None),
     is_flagged: bool | None = Query(None),
     is_test: bool | None = Query(None),
+    search: str | None = Query(
+        None, description="Case-insensitive substring match on merchant name or transaction ID."
+    ),
 ):
     """List transactions with optional filters."""
     query = select(Transaction).where(Transaction.tenant_id == current_user.tenant_id)
@@ -110,6 +114,11 @@ async def list_transactions(
         query = query.where(Transaction.is_flagged == is_flagged)
     if is_test is not None:
         query = query.where(Transaction.is_test == is_test)
+    if search and search.strip():
+        like = f"%{search.strip()}%"
+        query = query.where(
+            or_(Transaction.merchant_name.ilike(like), Transaction.id.ilike(like))
+        )
 
     count_result = await db.execute(select(func.count()).select_from(query.subquery()))
     total = count_result.scalar_one()
@@ -215,18 +224,22 @@ async def request_otp(
         if cust:
             customer_phone = cust.phone_number
 
-    # Try to send OTP via Twilio
+    # Try to send OTP via Twilio. The Twilio SDK is synchronous and blocks on
+    # network I/O, so run it in a worker thread to avoid stalling the event loop.
     sms_sent = False
     if settings.TWILIO_ACCOUNT_SID and settings.TWILIO_AUTH_TOKEN and customer_phone:
         try:
             from twilio.rest import Client
 
-            client = Client(settings.TWILIO_ACCOUNT_SID, settings.TWILIO_AUTH_TOKEN)
-            client.messages.create(
-                body=f"FinShield OTP: {otp} — Use this to verify your ₹{float(txn.amount):,.0f} transaction. Valid 10 min.",
-                from_=settings.TWILIO_FROM_NUMBER,
-                to=customer_phone,
-            )
+            def _send_sms() -> None:
+                client = Client(settings.TWILIO_ACCOUNT_SID, settings.TWILIO_AUTH_TOKEN)
+                client.messages.create(
+                    body=f"FinShield OTP: {otp} — Use this to verify your ₹{float(txn.amount):,.0f} transaction. Valid 10 min.",
+                    from_=settings.TWILIO_FROM_NUMBER,
+                    to=customer_phone,
+                )
+
+            await asyncio.to_thread(_send_sms)
             sms_sent = True
         except Exception as exc:
             logger.warning("Twilio SMS failed: %s", exc)
