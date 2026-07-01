@@ -112,7 +112,7 @@ jobs:
         continue-on-error: true
 
       - name: Upload test artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         if: always()
         with:
           name: backend-test-results
@@ -178,7 +178,7 @@ jobs:
             --outputFile.junit=test-results.xml || true
 
       - name: Upload test artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         if: always()
         with:
           name: frontend-test-results
@@ -261,7 +261,7 @@ jobs:
         run: npx playwright test --reporter=html,junit
 
       - name: Upload Playwright report
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         if: always()
         with:
           name: playwright-report
